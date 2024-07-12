@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript">
+        var socket = io();
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+
+        function createSession() {
+            var sessionName = document.getElementById('session_name').value;
+            var sessionPassword = document.getElementById('session_password').value;  // New line
+            fetch('/create_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ session_name: sessionName, session_password: sessionPassword })  // Updated
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Session created with ID:', data.session_id);
+                document.getElementById('session_id').value = data.session_id;
+                joinSession();  // Automatically join session after creation
+                showMessages();  // Load messages for the created session
+            });
+        }
+
+        function joinSession() {
+            var sessionId = document.getElementById('session_id').value;
+            var sessionPassword = document.getElementById('session_password').value;  // New line
+            fetch('/join_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ session_id: sessionId, session_password: sessionPassword })  // Updated
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    console.log('Joined session:', sessionId);
+                    showMessages();  // Load messages for the joined session
+                } else {
+                    console.error('Failed to join session:', response.statusText);
+                }
+            });
+        }
+
+        function showMessages() {
+            var sessionId = document.getElementById('session_id').value;
+            fetch(`/get_messages/${sessionId}`)
+            .then(response => response.json())
+            .then(messages => {
+                var messageList = document.getElementById('message-list');
+                messageList.innerHTML = '';  // Clear existing messages
+                messages.forEach(msg => {
+                    var newItem = document.createElement('li');
+                    newItem.textContent = msg.message + ' (' + msg.category + ')';
+                    messageList.appendChild(newItem);
+                });
+            })
+            .catch(error => console.error('Error fetching messages:', error));
+        }
+
+        function leaveSession() {
+            var sessionId = document.getElementById('session_id').value;
+            socket.emit('leave_session', sessionId);
+            console.log('Left session:', sessionId);
+        }
+
+        function addMessage() {
+            var sessionId = document.getElementById('session_id').value;
+            var message = document.getElementById('message').value;
+            var category = document.getElementById('category').value;
+            fetch('/add_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: message,
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Message added:', data);
+            });
+        }
+
+        socket.on('message_added', function(data) {
+            var messageList = document.getElementById('message-list');
+            var newItem = document.createElement('li');
+            newItem.textContent = data.message + ' (' + data.category + ')';
+            messageList.appendChild(newItem);
+        });
+    </script>
+</head>
+<body>
+    <h1>Socket.IO Example</h1>
+    <div id="session">
+        <input type="text" id="session_name" placeholder="Enter Session Name">
+        <input type="password" id="session_password" placeholder="Enter Session Password">  <!-- New input for session password -->
+        <button onclick="createSession()">Create Session</button>
+        <br><br>
+        <input type="text" id="session_id" placeholder="Enter Session ID">
+        <button onclick="joinSession()">Join Session</button>
+        <button onclick="leaveSession()">Leave Session</button>
+    </div>
+    <div id="messages">
+        <h2>Messages</h2>
+        <ul id="message-list"></ul>
+    </div>
+    <div id="add-message">
+        <h2>Add Message</h2>
+        <input type="text" id="message" placeholder="Enter Message">
+        <select id="category">
+            <option value="happy">Happy</option>
+            <option value="sad">Sad</option>
+            <option value="mad">Mad</option>
+        </select>
+        <button onclick="addMessage()">Add Message</button>
+    </div>
+</body>
+</html>
