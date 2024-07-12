@@ -27,18 +27,18 @@ def serve_index():
 
 @app.route('/create_session', methods=['POST'])
 def create_session():
-    session_name = request.json.get('session_name')
+    session_id = request.json.get('session_id')
     session_password = request.json.get('session_password')
 
-    if not session_name or len(session_name) == 0:
-        return jsonify({'error': 'session_name can\'t be null'}), 400
+    if not session_id or len(session_id) == 0:
+        return jsonify({'error': 'session_id can\'t be null'}), 400
     
     if not session_password or len(session_password) == 0:
         return jsonify({'error': 'session_password can\'t be null'}), 400
         
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO sessions (session_name, session_password) VALUES (%s, %s) RETURNING id", (session_name, session_password))
+    cur.execute("INSERT INTO sessions (session_id, session_password) VALUES (%s, %s) RETURNING id", (session_id, session_password))
     session_id = cur.fetchone()[0]
     conn.commit()
     cur.close()
@@ -49,16 +49,34 @@ def create_session():
 def join_session():
     session_id = request.json.get('session_id')
     session_password = request.json.get('session_password')
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT session_id FROM sessions WHERE session_id = %s AND session_password = %s", (session_id, session_password))
+        session_exists = cur.fetchone()
+        cur.close()
+        conn.close()
+        if session_exists:
+            return jsonify({'status': 'Session joined successfully'}), 200
+        else:
+            return jsonify({'error': 'Invalid session name or password'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/add_message', methods=['POST'])
+def add_message():
+    session_id = request.json.get('session_id')
+    message = request.json.get('message')
+    category = request.json.get('category')
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id FROM sessions WHERE id = %s AND session_password = %s", (session_id, session_password))
-    session_exists = cur.fetchone()
+    cur.execute("INSERT INTO messages (session_id, message, category) VALUES (%s, %s, %s)", (session_id, message, category))
+    conn.commit()
     cur.close()
     conn.close()
-    if session_exists:
-        return jsonify({'status': 'Session joined successfully'}), 200
-    else:
-        return jsonify({'error': 'Invalid session ID or password'}), 401
+    socketio.emit('message_added', {'session_id': session_id, 'message': message, 'category': category}, room=session_id)
+    return jsonify({'status': 'Message added'}), 201
 
 @app.route('/get_messages/<int:session_id>', methods=['GET'])
 def get_messages(session_id):
