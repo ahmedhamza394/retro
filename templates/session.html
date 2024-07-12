@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Messages</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript">
+        var sessionId = localStorage.getItem('session_id');
+        if (sessionId) {
+            console.log('Session ID:', sessionId);
+            // Proceed with fetching messages and handling other session-specific logic
+        } else {
+            console.log('No session ID found');
+            // Handle the case where no session ID is found, e.g., redirect to the join/create page
+        }
+    </script>
+    <script type="text/javascript">
+        var socket = io();
+        var sessionId = localStorage.getItem('session_id');
+
+        socket.emit('join_session', { session_id: sessionId });
+
+        socket.on('message_added', function(data) {
+            var messageList = document.getElementById('message-list');
+            var newItem = document.createElement('li');
+            newItem.textContent = data.message + ' (' + data.category + ')';
+            messageList.appendChild(newItem);
+        });
+
+        socket.on('user_count', function(data) {
+            document.getElementById('user-count').textContent = 'Users connected: ' + data.count;
+        });
+
+        function addMessage() {
+            var message = document.getElementById('message').value;
+            var category = document.getElementById('category').value;
+            fetch('/add_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: message,
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'Message added') {
+                    document.getElementById('message').value = '';
+                    document.getElementById('category').value = '';
+                } else {
+                    console.log('Error adding message:', data.error);
+                }
+            });
+        }
+
+        function leaveSession() {
+            socket.emit('leave_session', { session_id: sessionId });
+            localStorage.removeItem('session_id');
+            window.location.href = '/';
+        }
+
+        function showMessages() {
+            fetch('/get_messages/' + sessionId)
+                .then(response => response.json())
+                .then(messages => {
+                    var messageList = document.getElementById('message-list');
+                    messageList.innerHTML = ''; // Clear the current list
+                    messages.forEach(function(message) {
+                        var newItem = document.createElement('li');
+                        newItem.textContent = message.message + ' (' + message.category + ')';
+                        messageList.appendChild(newItem);
+                    });
+                });
+        }
+
+        window.onload = function() {
+            showMessages();
+        }
+    </script>
+</head>
+<body>
+    <h1>Session Messages</h1>
+    <button onclick="leaveSession()">Leave Session</button>
+    <div id="user-count"></div>
+    <ul id="message-list"></ul>
+    <input type="text" id="message" placeholder="Enter your message">
+    <select id="category">
+        <option value="happy">Happy</option>
+        <option value="sad">Sad</option>
+        <option value="mad">Mad</option>
+    </select>
+    <button onclick="addMessage()">Add Message</button>
+</body>
+</html>
