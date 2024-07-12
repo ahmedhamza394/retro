@@ -10,7 +10,7 @@ Activate the virtual environment:
 
 Install the packages
 
-```pip install Flask Flask-SocketIO psycopg2-binary python-dotenv```
+```pip install Flask Flask-SocketIO Flask-limitter psycopg2-binary python-dotenv```
 
 Flask: A micro web framework for Python.
 Flask-SocketIO: Adds WebSocket support to Flask applications.

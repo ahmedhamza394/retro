@@ -3,12 +3,21 @@ from flask_socketio import SocketIO, join_room, leave_room
 import psycopg2
 import os
 from dotenv import load_dotenv
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key')
 socketio = SocketIO(app)
+
+# Rate limiter setup
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Function to get a database connection
 def get_db_connection():
@@ -26,26 +35,32 @@ def serve_index():
     return send_from_directory('templates', 'index.html')
 
 @app.route('/create_session', methods=['POST'])
+@limiter.limit("2 per minute")  # Limit to 5 requests per minute per IP
 def create_session():
     session_id = request.json.get('session_id')
     session_password = request.json.get('session_password')
 
     if not session_id or len(session_id) == 0:
         return jsonify({'error': 'session_id can\'t be null'}), 400
-    
+
     if not session_password or len(session_password) == 0:
         return jsonify({'error': 'session_password can\'t be null'}), 400
-        
+
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO sessions (session_id, session_password) VALUES (%s, %s) RETURNING id", (session_id, session_password))
-    session_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({'session_id': session_id}), 201
+    try:
+        cur.execute("INSERT INTO sessions (session_id, session_password) VALUES (%s, %s)", (session_id, session_password))
+        conn.commit()
+    except psycopg2.errors.UniqueViolation:
+        return jsonify({'error': 'session_name already exists'}), 400
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({'status': 'Session created successfully'}), 201
 
 @app.route('/join_session', methods=['POST'])
+@limiter.limit("10 per minute")  # Limit to 10 requests per minute per IP
 def join_session():
     session_id = request.json.get('session_id')
     session_password = request.json.get('session_password')
@@ -65,6 +80,7 @@ def join_session():
         return jsonify({'error': str(e)}), 500
     
 @app.route('/add_message', methods=['POST'])
+@limiter.limit("30 per minute")  # Limit to 30 requests per minute per IP
 def add_message():
     session_id = request.json.get('session_id')
     message = request.json.get('message')

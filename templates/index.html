@@ -13,20 +13,20 @@
         });
 
         function createSession() {
-            var sessionName = document.getElementById('session_name').value;
-            var sessionPassword = document.getElementById('session_password').value;
+            var sessionName = document.getElementById('create_session_id').value;
+            var sessionPassword = document.getElementById('create_session_password').value;
             fetch('/create_session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ session_name: sessionName, session_password: sessionPassword })
+                body: JSON.stringify({ session_id: sessionName, session_password: sessionPassword })
             })
             .then(response => response.json())
             .then(data => {
                 if (!data.error) {
                     console.log('Session created:', data);
-                    document.getElementById('session_name_display').innerText = sessionName;
+                    document.getElementById('join_session_id').value = data.session_id;
                     joinSession();
                 } else {
                     alert(data.error);
@@ -35,8 +35,8 @@
         }
 
         function joinSession() {
-            var sessionId = document.getElementById('session_id').value;
-            var sessionPassword = document.getElementById('session_password').value;
+            var sessionId = document.getElementById('join_session_id').value;
+            var sessionPassword = document.getElementById('join_session_password').value;
             fetch('/join_session', {
                 method: 'POST',
                 headers: {
@@ -114,19 +114,20 @@
 <body>
     <h1>Socket.IO Example</h1>
     <div id="session">
-        <input type="text" id="session_name" placeholder="Enter Session Name">
-        <input type="password" id="session_password" placeholder="Enter Session Password">  <!-- New input for session password -->
+        <input type="text" id="create_session_id" placeholder="Enter Session Name">
+        <input type="password" id="create_session_password" placeholder="Enter Session Password">
         <button onclick="createSession()">Create Session</button>
         <br><br>
-        <input type="text" id="session_id" placeholder="Enter Session ID">
+        <input type="text" id="join_session_id" placeholder="Enter Session ID">
+        <input type="password" id="join_session_password" placeholder="Enter Session Password">
         <button onclick="joinSession()">Join Session</button>
         <button onclick="leaveSession()">Leave Session</button>
     </div>
-    <div id="messages">
+    <!-- <div id="messages">
         <h2>Messages</h2>
         <ul id="message-list"></ul>
-    </div>
-    <div id="add-message">
+    </div> -->
+    <!-- <div id="add-message">
         <h2>Add Message</h2>
         <input type="text" id="message" placeholder="Enter Message">
         <select id="category">
@@ -135,6 +136,6 @@
             <option value="mad">Mad</option>
         </select>
         <button onclick="addMessage()">Add Message</button>
-    </div>
+    </div> -->
 </body>
 </html>
