@@ -75,6 +75,14 @@
                 });
         }
 
+        socket.on('message_added', function(data) {
+            var messageList = document.getElementById('message-list');
+            var newItem = document.createElement('li');
+            socket.emit('leave_session', { session_id: sessionId });
+            newItem.textContent = data.message + ' (' + data.category + ')';
+            messageList.appendChild(newItem);
+        });
+
         window.onload = function() {
             showMessages();
         }

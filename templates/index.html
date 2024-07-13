@@ -13,33 +13,32 @@
         });
 
         function createSession() {
-            var sessionId = document.getElementById('create_session_id').value;
+            var sessionName = document.getElementById('create_session_id').value;
             var sessionPassword = document.getElementById('create_session_password').value;
             fetch('/create_session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    session_password: sessionPassword
-                })
+                body: JSON.stringify({ session_id: sessionName, session_password: sessionPassword })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.session_id) {
+                if (!data.error) {
+                    console.log('Session created:', data);
+                    document.getElementById('join_session_id').value = data.session_id;
                     localStorage.setItem('session_id', data.session_id);
                     localStorage.setItem('session_password', sessionPassword);
-                    console.log('Session created with ID:', data.session_id);
+                    //joinSession();
                     window.location.href = '/sessions.html?session_id=' + data.session_id + '&session_password=' + sessionPassword;
                 } else {
-                    console.log('Error creating session:', data.error);
+                    alert(data.error);
                 }
             });
         }
-
+        
         function joinSession() {
-            var sessionIdInput = document.getElementById('join_session_id').value;
+            var sessionId = document.getElementById('join_session_id').value;
             var sessionPassword = document.getElementById('join_session_password').value;
             fetch('/join_session', {
                 method: 'POST',
@@ -47,56 +46,26 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    session_id: sessionIdInput,
+                    session_id: sessionId,
                     session_password: sessionPassword
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'Session joined successfully') {
-                    localStorage.setItem('session_id', sessionIdInput);
-                    localStorage.setItem('session_password', sessionPassword);
-                    console.log('Joined session:', sessionIdInput);
-                    window.location.href = '/sessions.html?session_id=' + sessionIdInput + '&session_password=' + sessionPassword;
+            .then(response => response.json()
+            .then(data => ({ status: response.status, body: data })))  // Parse response as JSON
+            .then(({ status, body }) => {
+                if (status === 200) {
+                    console.log('Joined session:', sessionId);
+                    window.location.href = '/sessions.html?session_id=' + sessionId + '&session_password=' + sessionPassword;
                 } else {
-                    console.log('Error joining session:', data.error);
+                    console.error('Failed to join session:', body.error);
+                    alert(body.error);  // Display error to the user
                 }
-            });
-        }
-
-        function leaveSession() {
-            var sessionId = document.getElementById('session_id').value;
-            socket.emit('leave_session', sessionId);
-            console.log('Left session:', sessionId);
-        }
-
-        function addMessage() {
-            var sessionId = document.getElementById('session_id').value;
-            var message = document.getElementById('message').value;
-            var category = document.getElementById('category').value;
-            fetch('/add_message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    message: message,
-                    category: category
-                })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Message added:', data);
+            .catch(error => {
+                console.error('An error occurred:', error);
+                alert('An error occurred while trying to join the session.');
             });
         }
-
-        socket.on('message_added', function(data) {
-            var messageList = document.getElementById('message-list');
-            var newItem = document.createElement('li');
-            newItem.textContent = data.message + ' (' + data.category + ')';
-            messageList.appendChild(newItem);
-        });
     </script>
 </head>
 <body>

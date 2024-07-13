@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_socketio import SocketIO, join_room, leave_room, emit
 import psycopg2
 import os
@@ -38,21 +38,9 @@ def serve_index():
 def serve_sessions():
     session_id = request.args.get('session_id')
     session_password = request.args.get('session_password')
-    if not session_id or not session_password:
-        return redirect(url_for('index'))  # Redirect to the homepage if no session ID or password
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT session_id FROM sessions WHERE session_id = %s AND session_password = %s", (session_id, session_password))
-    session_exists = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if session_exists:
-        return send_from_directory('templates', 'sessions.html')
-    else:
-        return redirect(url_for('index'))  # Redirect to the homepage if invalid session ID or password
-
+    # Pass the session_id and session_password to the template
+    return render_template('session.html', session_id=session_id, session_password=session_password)
 
 @app.route('/create_session', methods=['POST'])
 @limiter.limit("5 per minute")  # Limit to 5 requests per minute per IP
