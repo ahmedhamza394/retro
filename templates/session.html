@@ -2,9 +2,33 @@
 <html>
 <head>
     <title>Joined Session</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+        .section {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #happy-section {
+            background-color: #e0f7fa;
+        }
+        #sad-section {
+            background-color: #fce4ec;
+        }
+        #mad-section {
+            background-color: #fff3e0;
+        }
+        .message-list {
+            list-style-type: none;
+            padding: 0;
+        }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="text/javascript">
-        
         function getQueryParams() {
             let params = new URLSearchParams(window.location.search);
             return {
@@ -12,14 +36,13 @@
                 session_password: params.get('session_password')
             };
         }
-        
+
         let queryParams = getQueryParams();
-        
-        if(queryParams.session_id != null){
+
+        if (queryParams.session_id != null) {
             localStorage.setItem('session_id', queryParams.session_id);
             console.log('Session ID:', queryParams.session_id);
         }
-
     </script>
     <script type="text/javascript">
         var socket = io();
@@ -35,9 +58,8 @@
             document.getElementById('user-count').textContent = 'Users connected: ' + data.count;
         });
 
-        function addMessage() {
-            var message = document.getElementById('message').value;
-            var category = document.getElementById('category').value;
+        function addMessage(category) {
+            var message = document.getElementById('message-' + category).value;
             fetch('/add_message', {
                 method: 'POST',
                 headers: {
@@ -53,8 +75,7 @@
             .then(data => {
                 if (data.status === 'Message added') {
                     console.log('Message added successfully');
-                    document.getElementById('message').value = '';
-                    document.getElementById('category').value = '';
+                    document.getElementById('message-' + category).value = '';
                 } else {
                     console.log('Error adding message:', data.error);
                 }
@@ -71,12 +92,25 @@
             fetch('/get_messages/' + localStorage.getItem('session_id'))
                 .then(response => response.json())
                 .then(messages => {
-                    var messageList = document.getElementById('message-list');
-                    messageList.innerHTML = ''; // Clear the current list
+                    var happyList = document.getElementById('happy-list');
+                    var sadList = document.getElementById('sad-list');
+                    var madList = document.getElementById('mad-list');
+                    
+                    happyList.innerHTML = ''; // Clear the current list
+                    sadList.innerHTML = '';
+                    madList.innerHTML = '';
+
                     messages.forEach(function(message) {
                         var newItem = document.createElement('li');
-                        newItem.textContent = message.message + ' (' + message.category + ')';
-                        messageList.appendChild(newItem);
+                        newItem.textContent = message.message;
+                        
+                        if (message.category === 'happy') {
+                            happyList.appendChild(newItem);
+                        } else if (message.category === 'sad') {
+                            sadList.appendChild(newItem);
+                        } else if (message.category === 'mad') {
+                            madList.appendChild(newItem);
+                        }
                     });
                 });
         }
@@ -87,16 +121,25 @@
     </script>
 </head>
 <body>
-    <h1>Session Messages</h1>
-    <button onclick="leaveSession()">Leave Session</button>
-    <div id="user-count"></div>
-    <ul id="message-list"></ul>
-    <input type="text" id="message" placeholder="Enter your message">
-    <select id="category">
-        <option value="happy">Happy</option>
-        <option value="sad">Sad</option>
-        <option value="mad">Mad</option>
-    </select>
-    <button onclick="addMessage()">Add Message</button>
+    <div class="section" id="happy-section">
+        <h1>Happy Messages</h1>
+        <button onclick="leaveSession()">Leave Session</button>
+        <div id="user-count"></div>
+        <ul id="happy-list" class="message-list"></ul>
+        <input type="text" id="message-happy" placeholder="Enter your message">
+        <button onclick="addMessage('happy')">Add Message</button>
+    </div>
+    <div class="section" id="sad-section">
+        <h1>Sad Messages</h1>
+        <ul id="sad-list" class="message-list"></ul>
+        <input type="text" id="message-sad" placeholder="Enter your message">
+        <button onclick="addMessage('sad')">Add Message</button>
+    </div>
+    <div class="section" id="mad-section">
+        <h1>Mad Messages</h1>
+        <ul id="mad-list" class="message-list"></ul>
+        <input type="text" id="message-mad" placeholder="Enter your message">
+        <button onclick="addMessage('mad')">Add Message</button>
+    </div>
 </body>
 </html>
