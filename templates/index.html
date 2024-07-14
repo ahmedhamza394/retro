@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Socket.IO Example</title>
+    <title>Retro APP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="text/javascript">
         var socket = io();
@@ -13,26 +13,25 @@
         });
 
         function createSession() {
-            var sessionName = document.getElementById('create_session_id').value;
+            var sessionId = document.getElementById('create_session_id').value;
             var sessionPassword = document.getElementById('create_session_password').value;
             fetch('/create_session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ session_id: sessionName, session_password: sessionPassword })
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    session_password: sessionPassword
+                })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.error) {
-                    console.log('Session created:', data);
-                    document.getElementById('join_session_id').value = data.session_id;
-                    localStorage.setItem('session_id', data.session_id);
-                    localStorage.setItem('session_password', sessionPassword);
-                    //joinSession();
-                    window.location.href = '/sessions.html?session_id=' + data.session_id + '&session_password=' + sessionPassword;
+            .then(response => response.json()
+            .then(data => ({ status: response.status, body: data })))  // Parse response as JSON
+            .then(({ status, body }) => {
+                if (status === 201) {
+                    window.location.href = '/sessions.html?session_id=' + sessionId + '&session_password=' + sessionPassword;
                 } else {
-                    alert(data.error);
+                    alert(body.error);
                 }
             });
         }
@@ -55,6 +54,7 @@
             .then(({ status, body }) => {
                 if (status === 200) {
                     console.log('Joined session:', sessionId);
+                    localStorage.setItem('session_id', body.session_id);
                     window.location.href = '/sessions.html?session_id=' + sessionId + '&session_password=' + sessionPassword;
                 } else {
                     console.error('Failed to join session:', body.error);

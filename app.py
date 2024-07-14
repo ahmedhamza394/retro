@@ -38,12 +38,24 @@ def serve_index():
 def serve_sessions():
     session_id = request.args.get('session_id')
     session_password = request.args.get('session_password')
-
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT session_id FROM sessions WHERE session_id = %s AND session_password = %s", (session_id, session_password))
+        session_exists = cur.fetchone()
+        cur.close()
+        conn.close()
+        if session_exists:
+            return render_template('session.html', session_id=session_id, session_password=session_password)
+        else:
+            return jsonify({'error': 'Invalid session name or password'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     # Pass the session_id and session_password to the template
-    return render_template('session.html', session_id=session_id, session_password=session_password)
+        
 
 @app.route('/create_session', methods=['POST'])
-@limiter.limit("5 per minute")  # Limit to 5 requests per minute per IP
+@limiter.limit("1 per minute")  # Limit to 5 requests per minute per IP
 def create_session():
     session_id = request.json.get('session_id')
     session_password = request.json.get('session_password')
@@ -99,7 +111,11 @@ def add_message():
     conn.commit()
     cur.close()
     conn.close()
+    
+    print(session_id);
+
     socketio.emit('message_added', {'session_id': session_id, 'message': message, 'category': category}, room=session_id)
+        
     return jsonify({'status': 'Message added'}), 201
 
 @app.route('/get_messages/<string:session_id>', methods=['GET'])
@@ -118,17 +134,19 @@ def get_messages(session_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
 @socketio.on('join_session')
 def on_join(data):
-    room = data
-    join_room(room)
-    emit_user_count(room)
+    session_id = data['session_id']
+    join_room(session_id)
+    print(f"Joined room: {session_id}")
 
 @socketio.on('leave_session')
 def on_leave(data):
-    room = data
-    leave_room(room)
-    emit_user_count(room)
+    session_id = data['session_id']
+    leave_room(session_id)
+    emit_user_count(session_id)
 
 def emit_user_count(room):
     user_count = len(socketio.server.manager.rooms['/'][room])

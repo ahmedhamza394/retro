@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Session Messages</title>
+    <title>Joined Session</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="text/javascript">
-        var sessionId = localStorage.getItem('session_id');
-        if (sessionId) {
-            console.log('Session ID:', sessionId);
-            // Proceed with fetching messages and handling other session-specific logic
-        } else {
-            console.log('No session ID found');
-            // Handle the case where no session ID is found, e.g., redirect to the join/create page
+        
+        function getQueryParams() {
+            let params = new URLSearchParams(window.location.search);
+            return {
+                session_id: params.get('session_id'),
+                session_password: params.get('session_password')
+            };
         }
+        
+        let queryParams = getQueryParams();
+        
+        if(queryParams.session_id != null){
+            localStorage.setItem('session_id', queryParams.session_id);
+            console.log('Session ID:', queryParams.session_id);
+        }
+
     </script>
     <script type="text/javascript">
         var socket = io();
@@ -20,10 +28,7 @@
         socket.emit('join_session', { session_id: sessionId });
 
         socket.on('message_added', function(data) {
-            var messageList = document.getElementById('message-list');
-            var newItem = document.createElement('li');
-            newItem.textContent = data.message + ' (' + data.category + ')';
-            messageList.appendChild(newItem);
+            showMessages();
         });
 
         socket.on('user_count', function(data) {
@@ -47,6 +52,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'Message added') {
+                    console.log('Message added successfully');
                     document.getElementById('message').value = '';
                     document.getElementById('category').value = '';
                 } else {
@@ -62,7 +68,7 @@
         }
 
         function showMessages() {
-            fetch('/get_messages/' + sessionId)
+            fetch('/get_messages/' + localStorage.getItem('session_id'))
                 .then(response => response.json())
                 .then(messages => {
                     var messageList = document.getElementById('message-list');
@@ -74,14 +80,6 @@
                     });
                 });
         }
-
-        socket.on('message_added', function(data) {
-            var messageList = document.getElementById('message-list');
-            var newItem = document.createElement('li');
-            socket.emit('leave_session', { session_id: sessionId });
-            newItem.textContent = data.message + ' (' + data.category + ')';
-            messageList.appendChild(newItem);
-        });
 
         window.onload = function() {
             showMessages();
