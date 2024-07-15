@@ -29,7 +29,11 @@
             .then(data => ({ status: response.status, body: data })))  // Parse response as JSON
             .then(({ status, body }) => {
                 if (status === 201) {
-                    window.location.href = '/sessions.html?session_id=' + sessionId + '&session_password=' + sessionPassword;
+                    
+                    var sessionUrl = 'https://thoretro.s3.amazonaws.com/templates/session.html';
+                    var queryParams = `?session_id=${sessionId}&session_password=${sessionPassword}`;
+                    var finalUrl = sessionUrl + queryParams;
+                    window.location.href = finalUrl;
                 } else {
                     alert(body.error);
                 }
@@ -55,7 +59,10 @@
                 if (status === 200) {
                     console.log('Joined session:', sessionId);
                     localStorage.setItem('session_id', body.session_id);
-                    window.location.href = '/sessions.html?session_id=' + sessionId + '&session_password=' + sessionPassword;
+                    var sessionUrl = 'https://thoretro.s3.amazonaws.com/templates/session.html';
+                    var queryParams = `?session_id=${sessionId}&session_password=${sessionPassword}`;
+                    var finalUrl = sessionUrl + queryParams;
+                    window.location.href = finalUrl;
                 } else {
                     console.error('Failed to join session:', body.error);
                     alert(body.error);  // Display error to the user

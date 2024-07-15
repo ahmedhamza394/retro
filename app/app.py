@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, redirect, render_template
 from flask_socketio import SocketIO, join_room, leave_room, emit
 import psycopg2
 import os
@@ -32,7 +32,7 @@ def get_db_connection():
 
 @app.route('/')
 def serve_index():
-    return send_from_directory('templates', 'index.html')
+    return redirect('https://thortro.s3.amazonaws.com/index.html')  # Update with your S3 URL
 
 @app.route('/sessions.html')
 def serve_sessions():
