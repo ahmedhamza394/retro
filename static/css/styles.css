@@ -1,0 +1,38 @@
+body {
+    display: flex;
+    height: 100vh;
+    margin: 0;
+}
+
+.section {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#glad-section {
+    background-color: #e0f7fa;
+}
+
+#sad-section {
+    background-color: #fce4ec;
+}
+
+#mad-section {
+    background-color: #fff3e0;
+}
+
+.message-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.leave-session {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
